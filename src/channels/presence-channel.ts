@@ -85,7 +85,7 @@ export class PresenceChannel {
 
                 this.onSubscribed(socket, channel, members);
 
-                if (!is_member) {
+                if (is_member) {
                     this.onJoin(socket, channel, member);
                 }
             }, error => Log.error(error));
@@ -107,7 +107,7 @@ export class PresenceChannel {
             this.db.set(channel + ':members', members);
 
             this.isMember(channel, member).then(is_member => {
-                if (!is_member) {
+                if (is_member) {
                     delete member.socketId;
                     this.onLeave(channel, member);
                 }
