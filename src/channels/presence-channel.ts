@@ -119,19 +119,28 @@ export class PresenceChannel {
         this.getMembers(channel).then(
             (members) => {
                 members = members || [];
-                let member = members.find(
-                    (member) => member.socketId == socket.id
-                );
-                members = members.filter((m) => m.socketId != member.socketId);
+
+                let member
+
+                members = members.filter((m) => {
+                    if(m.socketId == socket.id) {
+                        member = m
+                        return false
+                    }
+
+                    return true
+                });
 
                 this.db.set(channel + ":members", members);
 
-                this.isMember(channel, member).then((is_member) => {
-                    if (!is_member) {
-                        delete member.socketId;
-                        this.onLeave(channel, member);
-                    }
-                });
+                if(member) {
+                    this.isMember(channel, member).then((is_member) => {
+                        if (!is_member) {
+                            delete member.socketId;
+                            this.onLeave(channel, member);
+                        }
+                    });
+                }
             },
             (error) => Log.error(error)
         );
