@@ -79,7 +79,7 @@ Edit the default configuration of the server by adding options to your **laravel
 | Title              | Default              | Description                 |
 | :------------------| :------------------- | :---------------------------|
 | `apiOriginAllow`   | `{}`                 | Configuration to allow API be accessed over CORS. [Example](#cross-domain-access-to-api) |
-| `authEndpoint`     | `/broadcasting/auth` | The route that authenticates private channels  |
+| `authEndpoint`     | `/broadcasting/auth` | The route that authenticates private channels |
 | `authHost`         | `http://localhost`   | The host of the server that authenticates private and presence channels  |
 | `database`         | `redis`              | Database used to store data that should persist, like presence channel members. Options are currently `redis` and `sqlite` |
 | `databaseConfig`   |  `{}`                | Configurations for the different database drivers [Example](#database) |
@@ -93,6 +93,31 @@ Edit the default configuration of the server by adding options to your **laravel
 | `sslPassphrase`    | `''`                 | The pass phrase to use for the certificate (if applicable) |
 | `socketio`         | `{}`                 | Options to pass to the socket.io instance ([available options](https://github.com/socketio/engine.io#methods-1)) |
 | `subscribers`      | `{"http": true, "redis": true}` | Allows to disable subscribers individually. Available subscribers: `http` and `redis` |
+
+*  Modifying the returned user object on Laravel `AuthEndPoint` server side to prevent errors on "presence channels"
+
+    The errors are caused by discrepancies in parameters among laravel, laravel-echo (v 1.6.1, currently latest), laravel-echo-server. They are mostly solved by modifying the server side like the following.
+ 
+    ```
+        public function broadcast(Request $request)
+        {
+            $channel_name = $request['channel_name'];
+    
+            // your codes for additional checks with $channel_name & $user
+            ...
+    
+            $member = [];
+            // Laravel-echo (https://github.com/laravel/echo) uses the 'user_info' parameter. 
+            $member['user_info'] = $request->user()->toArray();
+            $member['user_id'] = $member['user_info']['id'];
+    
+            // your Laravel server-side controller must return the authenticated member object with the key name 'channel_data' in case of using presence channels.
+            // Otherwise, the following error can happen.
+            // "Unable to join channel. Member data for presence channel missing"
+            return response()->json(['channel_data' => $member], 200);
+    
+        }
+    ``` 
 
 ### DotEnv
 If a .env file is found in the same directory as the laravel-echo-server.json
