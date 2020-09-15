@@ -25,7 +25,11 @@ export class RedisSubscriber implements Subscriber {
      */
     constructor(private options) {
         this._keyPrefix = options.databaseConfig.redis.keyPrefix || '';
-        this._redis = new Redis(options.databaseConfig.redis);
+        if(options.databaseConfig.redis.nodes && options.databaseConfig.redis.nodes.length != 0) {
+            this._redis = new Redis.Cluster(options.databaseConfig.redis.nodes, options.databaseConfig.redis.options);
+        } else {
+            this._redis = new Redis(options.databaseConfig.redis);
+        }
     }
 
     /**

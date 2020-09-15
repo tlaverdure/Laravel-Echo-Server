@@ -273,6 +273,33 @@ For example, if you wanted to pass a custom configuration to Redis:
 }
 
 ```
+
+#### Redis Cluster
+To use cluster you must prepare config for redis to looks like above:
+
+``` json
+
+{
+  "databaseConfig" : {
+    "redis" : {
+        "nodes" : [
+            {
+               "port": "3001",
+               "host": "redis.app.dev"
+            },
+            {
+               "port": "3001",
+               "host": "redis.app.dev"
+            }
+        ],
+        "options" : []
+    }
+  }
+}
+
+```
+Options are way to pass any custom configuration that ioRedis can handle. For more look at link below.
+
 *Note: No scheme (http/https etc) should be used for the host address*
 
 *A full list of Redis options can be found [here](https://github.com/luin/ioredis/blob/master/API.md#new-redisport-host-options).*
