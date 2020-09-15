@@ -8,9 +8,18 @@ export class RedisDatabase implements DatabaseDriver {
     private _redis: any;
 
     /**
+     *
+     * KeyPrefix for used in the redis Connection
+     *
+     * @type {String}
+     */
+    private _keyPrefix: string;
+
+    /**
      * Create a new cache instance.
      */
     constructor(private options) {
+        this._keyPrefix = options.databaseConfig.redis.keyPrefix || '';
         this._redis = new Redis(options.databaseConfig.redis);
     }
 
@@ -29,7 +38,7 @@ export class RedisDatabase implements DatabaseDriver {
     set(key: string, value: any): void {
         this._redis.set(key, JSON.stringify(value));
         if (this.options.databaseConfig.publishPresence === true && /^presence-.*:members$/.test(key)) {
-            this._redis.publish('PresenceChannelUpdated', JSON.stringify({
+            this._redis.publish(`${this._keyPrefix}PresenceChannelUpdated`, JSON.stringify({
                 "event": {
                     "channel": key,
                     "members": value

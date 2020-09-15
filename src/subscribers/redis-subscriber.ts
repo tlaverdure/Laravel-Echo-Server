@@ -37,6 +37,9 @@ export class RedisSubscriber implements Subscriber {
 
         return new Promise((resolve, reject) => {
             this._redis.on('pmessage', (subscribed, channel, message) => {
+                if (channel.endsWith('PresenceChannelUpdated')) {
+                    return;
+                }
                 try {
                     message = JSON.parse(message);
 
