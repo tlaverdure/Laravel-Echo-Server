@@ -44,7 +44,14 @@ export class EchoServer {
             allowOrigin: '',
             allowMethods: '',
             allowHeaders: ''
-        }
+        },
+        hookHost: null,
+        hooks: {
+            "onJoinEndpoint": null,
+            "onLeaveEndpoint": null,
+            "onClientEventEndpoint": null
+        },
+        rejectUnautorized: ''
     };
 
     /**
@@ -128,6 +135,8 @@ export class EchoServer {
         } else {
             Log.info('Starting server...\n')
         }
+        
+        Log.info(`Searching hooks...\n`);
     }
 
     /**
@@ -225,7 +234,7 @@ export class EchoServer {
      */
     onUnsubscribe(socket: any): void {
         socket.on('unsubscribe', data => {
-            this.channel.leave(socket, data.channel, 'unsubscribed');
+            this.channel.leave(socket, data.channel, 'unsubscribed', data.auth);
         });
     }
 
@@ -236,7 +245,7 @@ export class EchoServer {
         socket.on('disconnecting', (reason) => {
             Object.keys(socket.rooms).forEach(room => {
                 if (room !== socket.id) {
-                    this.channel.leave(socket, room, reason);
+                    this.channel.leave(socket, room, reason, {});
                 }
             });
         });

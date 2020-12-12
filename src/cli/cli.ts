@@ -38,7 +38,8 @@ export class Cli {
         LARAVEL_ECHO_SERVER_SSL_CERT: "sslCertPath",
         LARAVEL_ECHO_SERVER_SSL_KEY: "sslKeyPath",
         LARAVEL_ECHO_SERVER_SSL_CHAIN: "sslCertChainPath",
-        LARAVEL_ECHO_SERVER_SSL_PASS: "sslPassphrase"
+        LARAVEL_ECHO_SERVER_SSL_PASS: "sslPassphrase",
+        NODE_TLS_REJECT_UNAUTHORIZED: "rejectUnautorized"
     };
 
     /**

@@ -106,6 +106,10 @@ export class Server {
             next();
         });
 
+        if (this.options.rejectUnautorized && this.options.rejectUnautorized !== '') {
+            process.env.NODE_TLS_REJECT_UNAUTHORIZED = this.options.rejectUnautorized
+        }
+
         if (secure) {
             var httpServer = https.createServer(this.options, this.express);
         } else {

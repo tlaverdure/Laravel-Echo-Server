@@ -1,3 +1,4 @@
+let request = require('request');
 import { PresenceChannel } from './presence-channel';
 import { PrivateChannel } from './private-channel';
 import { Log } from './../log';
@@ -12,6 +13,14 @@ export class Channel {
      * Allowed client events
      */
     protected _clientEvents: string[] = ['client-*'];
+
+    /**
+     * Request client.
+     *
+     * @type {any}
+     */
+    private request: any;
+
 
     /**
      * Private channel instance.
@@ -29,6 +38,7 @@ export class Channel {
     constructor(private io, private options) {
         this.private = new PrivateChannel(options);
         this.presence = new PresenceChannel(io, options);
+        this.request = request;
 
         if (this.options.devMode) {
             Log.success('Channels are ready.');
@@ -44,7 +54,7 @@ export class Channel {
                 this.joinPrivate(socket, data);
             } else {
                 socket.join(data.channel);
-                this.onJoin(socket, data.channel);
+                this.onJoin(socket, data.channel, data.auth);
             }
         }
     }
@@ -66,6 +76,7 @@ export class Channel {
                 this.io.sockets.connected[socket.id]
                     .broadcast.to(data.channel)
                     .emit(data.event, data.channel, data.data);
+                this.hook(socket, data.channel, data.auth, "onClientEvent");
             }
         }
     }
@@ -73,7 +84,7 @@ export class Channel {
     /**
      * Leave a channel.
      */
-    leave(socket: any, channel: string, reason: string): void {
+    leave(socket: any, channel: string, reason: string, auth: any): void {
         if (channel) {
             if (this.isPresence(channel)) {
                 this.presence.leave(socket, channel)
@@ -84,6 +95,8 @@ export class Channel {
             if (this.options.devMode) {
                 Log.info(`[${new Date().toISOString()}] - ${socket.id} left channel: ${channel} (${reason})`);
             }
+
+            this.hook(socket, channel, auth, "onLeave");
         }
     }
 
@@ -117,7 +130,7 @@ export class Channel {
                 this.presence.join(socket, data.channel, member);
             }
 
-            this.onJoin(socket, data.channel);
+            this.onJoin(socket, data.channel, data.auth);
         }, error => {
             if (this.options.devMode) {
                 Log.error(error.reason);
@@ -138,10 +151,12 @@ export class Channel {
     /**
      * On join a channel log success.
      */
-    onJoin(socket: any, channel: string): void {
+    onJoin(socket: any, channel: string,  auth: any): void {
         if (this.options.devMode) {
             Log.info(`[${new Date().toISOString()}] - ${socket.id} joined channel: ${channel}`);
         }
+        
+        this.hook(socket, channel, auth, "onJoin");
     }
 
     /**
@@ -163,5 +178,113 @@ export class Channel {
      */
     isInChannel(socket: any, channel: string): boolean {
         return !!socket.rooms[channel];
+    }
+
+    /**
+     * 
+     * @param {any} socket 
+     * @param {string} channel
+     * @param {object} auth 
+     * @param {string} hookEndpoint 
+     * @param {string} hookName 
+     */
+    hook(socket:any, channel: any, auth: any, hookName: string) {
+        if (typeof this.options.hookHost == 'undefined' ||
+            !this.options.hookHost ||
+            typeof this.options.hooks == 'undefined' ||
+            !this.options.hooks) {
+            return;
+        }
+
+        let hookEndpoint = this.getHookEndpoint(hookName, channel);
+
+        if (hookEndpoint == null) {
+            return;
+        }
+
+        let options = this.prepareHookHeaders(socket, auth, channel, hookEndpoint)
+
+        this.request.post(options, (error, response, body, next) => {
+            if (error) {
+                if (this.options.devMode) {
+                    Log.error(`[${new Date().toLocaleTimeString()}] - Error call ${hookName} hook ${socket.id} for ${options.form.channel_name}`);
+                }
+
+                Log.error(error);
+            } else if (response.statusCode !== 200) {
+                if (this.options.devMode) {
+                    Log.warning(`[${new Date().toLocaleTimeString()}] - Error call ${hookName} hook ${socket.id} for ${options.form.channel_name}`);
+                    Log.error(response.body);
+                }
+            } else {
+                if (this.options.devMode) {
+                    Log.info(`[${new Date().toLocaleTimeString()}] - Call ${hookName} hook for ${socket.id} for ${options.form.channel_name}: ${response.body}`);
+                }
+            }
+        });
+    }
+
+    /**
+     * Get hook endpoint for request to app server.
+     * 
+     * @param {string} hookName 
+     * @returns {string}
+     */
+    getHookEndpoint(hookName: string, channel: any): string {
+        let hookEndpoint = null;
+        switch(hookName) { 
+            case "onJoin": {
+                if (!this.options.hooks.onJoinEndpoint) {
+                    break;
+                }
+                if (this.options.hooks.onJoinRegexp && !(new RegExp(this.options.hooks.onJoinRegexp)).test(channel)) {
+                    break;
+                }
+                hookEndpoint = this.options.hooks.onJoinEndpoint;
+                break; 
+            } 
+            case "onLeave": {
+                if (!this.options.hooks.onLeaveEndpoint) {
+                    break;
+                }
+                if (this.options.hooks.onLeaveRegexp && !(new RegExp(this.options.hooks.onLeaveRegexp)).test(channel)) {
+                    break;
+                }
+                hookEndpoint = this.options.hooks.onLeaveEndpoint;
+                break;
+            } 
+            case "onClientEvent": {
+                if (!this.options.hooks.onClientEventEndpoint) {
+                    break;
+                }
+                hookEndpoint = this.options.hooks.onClientEventEndpoint;
+                break;
+            } 
+            default: {
+                Log.error('cannot find hookEndpoint for hookName: ' + hookName);
+                break;          
+            } 
+        }
+        return hookEndpoint;
+    }
+
+    /**
+     * Prepare headers for request to app server.
+     * 
+     * @param {any} socket
+     * @param {any} auth
+     * @param {string} channel
+     * @param {string} hookEndpoint
+     * @returns {any}
+     */
+    prepareHookHeaders(socket: any, auth: any, channel: string, hookEndpoint: string): any {
+        let options = {
+            url: this.options.hookHost + hookEndpoint,
+            form: { channel_name: channel },
+            headers: (auth && auth.headers) ? auth.headers : {}
+        };
+        options.headers['Cookie'] = socket.request.headers.cookie;
+        options.headers['X-Requested-With'] = 'XMLHttpRequest';
+        return options;
     }
 }

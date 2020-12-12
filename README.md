@@ -84,6 +84,7 @@ Edit the default configuration of the server by adding options to your **laravel
 | `database`         | `redis`              | Database used to store data that should persist, like presence channel members. Options are currently `redis` and `sqlite` |
 | `databaseConfig`   |  `{}`                | Configurations for the different database drivers [Example](#database) |
 | `devMode`          | `false`              | Adds additional logging for development purposes |
+| `hookEndpoint`         | `null`               | The route that receives to the client-side event [Example](#hook-client-side-event)  |
 | `host`             | `null`               | The host of the socket.io server ex.`app.dev`. `null` will accept connections on any IP-address |
 | `port`             | `6001`               | The port that the socket.io server should run on |
 | `protocol`         | `http`               | Must be either `http` or `https` |
@@ -110,6 +111,7 @@ file, the following options can be overridden:
 - `sslCertPath`: `LARAVEL_ECHO_SERVER_SSL_CERT`
 - `sslPassphrase`: `LARAVEL_ECHO_SERVER_SSL_PASS`
 - `sslCertChainPath`: `LARAVEL_ECHO_SERVER_SSL_CHAIN`
+- `rejectUnautorized`: `NODE_TLS_REJECT_UNAUTHORIZED`
 
 
 ### Running with SSL
@@ -371,3 +373,119 @@ _Note: When using the socket.io client library from your running server, remembe
 #### µWebSockets deprecation
 
 µWebSockets has been [officially deprecated](https://www.npmjs.com/package/uws). Currently there is no support for µWebSockets in Socket.IO, but it may have the new [ClusterWS](https://www.npmjs.com/package/@clusterws/cws) support incoming. Meanwhile Laravel Echo Server will use [`ws` engine](https://www.npmjs.com/package/ws) by default until there is another option.
+
+## Hook client side event
+There are 3 types of client-side event can be listen to. Here is the event names:
+- join
+- leave
+- client_event
+
+### Hooks configuration
+First, you need to configurate your `hookEndpoint`. Here is an example:
+
+```ini
+"hookHost": "/api/hook",
+```
+
+You don't need to configure hook host. hook host value is getting from `authHost`
+
+`laravel-echo-server` will send a post request to hook endpoint when there is a client-side event coming.
+You can get event information from `cookie` and `form`.
+
+#### Get data from cookie
+`laravel-echo-server` directly use `cookie` from page. So you can add some cookie values like `user_id` to identify user.
+
+#### Get data from post form
+There is always an attribute in post form called `channel`. You can get event payload of [Client Event](https://laravel.com/docs/5.7/broadcasting#client-events) of there is an client event, such as `whisper`.
+
+**Post form format**
+
+| Attribute           | Description             | Example             | Default               |
+| :-------------------| :---------------------- | :-------------------| :---------------------|
+| `event`             | The event name. Options: `join`, `leave`, `client_event`          | `join`              |                       |
+| `channel`           | The channel name        | `meeting`           |                      |
+| `payload`           | Payload of client event. `joinChannel` or `leaveChannel` hook doesn't have payload | `{from: 'Alex', to: 'Bill'}` | `null`       |
+
+### join channel hook
+When users join in a channel `event` should be `join`.
+
+The request form example:
+```ini
+event = join
+channel = helloworld
+```
+
+Route configuration example:
+```php
+Route::post('/hook', function(Request $request) {
+  if ($request->input('event') === 'join') {
+    $channel = $request->input('channel');
+    $x_csrf_token = $request->header('X-CSRF-TOKEN');
+    $cookie = $request->header('Cookie');
+    // ... 
+  }
+});
+```
+
+### leave channel hook
+When users leave a channel `event` should be `leave`.
+
+> Notes that there is no X-CSRF-TOKEN in header when sending a post request for leave channel event, so you'd better not to use the route in `/routes/web.php`.
+
+The request form example:
+```ini
+event = leave
+channel = helloworld
+```
+
+Route configuration example:
+```php
+use Illuminate\Http\Request;
+
+Route::post('/hook', function(Request $request) {
+  if ($request->input('event') === 'leave') {
+    $channel = $request->input('channel');
+    $cookie = $request->header('Cookie');
+    // ...
+  }
+});
+```
+
+### client event hook
+When users use `whisper` to broadcast an event in a channel `event` should be `client_event`. 
+
+> Notes that there is no X-CSRF-TOKEN in header when sending a post request for client-event event, so you'd better not to use the route in `/routes/web.php`.
+
+It will fire the client-event after using `whisper` to broadcast an event like this:
+```javascript
+Echo.private('chat')
+    .whisper('whisperEvent', {
+        from: this.username,
+        to: this.whisperTo
+    });
+```
+
+The request form example
+```ini
+event = client_event
+channel = helloworld
+payload = {from:'Alex', to:'Bill'}
+```
+
+Route configuration example
+```php
+use Illuminate\Http\Request;
+
+Route::post('/hoot', function(Request $request) {
+  if ($request->input('event') === 'client_event') {
+    $channel = $request->input('channel');
+    $user_id = $request->header('Cookie');
+    $payload = $request->input('payload');
+    $from = $payload['from'];
+    $to = $payload['to'];
+    // ...
+  }
+});
+```
+
+> Notes that even though we use an `Object` as payload of client event, the payload will be transformed to an `Array` in PHP. So remember to get your attribute from payload by using an `Array` method like `$payload['xxxx']`
