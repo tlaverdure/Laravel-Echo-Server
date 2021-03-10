@@ -26,7 +26,7 @@ export class Cli {
     /**
      * Allowed environment variables.
      */
-    envVariables: any = {
+    envVariables: {[key: string]: string} = {
         LARAVEL_ECHO_SERVER_AUTH_HOST: "authHost",
         LARAVEL_ECHO_SERVER_DEBUG: "devMode",
         LARAVEL_ECHO_SERVER_HOST: "host",
@@ -34,6 +34,7 @@ export class Cli {
         LARAVEL_ECHO_SERVER_REDIS_HOST: "databaseConfig.redis.host",
         LARAVEL_ECHO_SERVER_REDIS_PORT: "databaseConfig.redis.port",
         LARAVEL_ECHO_SERVER_REDIS_PASSWORD: "databaseConfig.redis.password",
+        LARAVEL_ECHO_SERVER_REDIS_PREFIX: "databaseConfig.redis.keyPrefix",
         LARAVEL_ECHO_SERVER_PROTO: "protocol",
         LARAVEL_ECHO_SERVER_SSL_CERT: "sslCertPath",
         LARAVEL_ECHO_SERVER_SSL_KEY: "sslKeyPath",
