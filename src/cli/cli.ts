@@ -28,6 +28,7 @@ export class Cli {
      */
     envVariables: any = {
         LARAVEL_ECHO_SERVER_AUTH_HOST: "authHost",
+        LARAVEL_ECHO_SERVER_AUTH_ENDPOINT: "authEndpoint",
         LARAVEL_ECHO_SERVER_DEBUG: "devMode",
         LARAVEL_ECHO_SERVER_HOST: "host",
         LARAVEL_ECHO_SERVER_PORT: "port",

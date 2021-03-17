@@ -99,6 +99,7 @@ If a .env file is found in the same directory as the laravel-echo-server.json
 file, the following options can be overridden:
 
 - `authHost`: `LARAVEL_ECHO_SERVER_AUTH_HOST` *Note*: This option will fall back to the `LARAVEL_ECHO_SERVER_HOST` option as the default if that is set in the .env file.
+- `authEndpoint`: `LARAVEL_ECHO_SERVER_AUTH_ENDPOINT`
 - `host`: `LARAVEL_ECHO_SERVER_HOST`
 - `port`: `LARAVEL_ECHO_SERVER_PORT`
 - `devMode`: `LARAVEL_ECHO_SERVER_DEBUG`
