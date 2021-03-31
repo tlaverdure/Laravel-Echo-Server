@@ -270,6 +270,11 @@ export class Cli {
             dev: {
                 type: "boolean",
                 describe: "Run in dev mode."
+            },
+            
+            lockfile: {
+                type: "string",
+                describe: "The path for the lock file."
             }
         });
 
@@ -292,7 +297,7 @@ export class Cli {
             options.devMode =
                 `${yargs.argv.dev || options.devMode || false}` === "true";
 
-            const lockFile = path.join(
+            const lockFile = yargs.argv.lockfile || path.join(
                 path.dirname(configFile),
                 path.basename(configFile, ".json") + ".lock"
             );
@@ -382,6 +387,11 @@ export class Cli {
             dir: {
                 type: "string",
                 describe: "The working directory to use."
+            },
+            
+            lockfile: {
+                type: "string",
+                describe: "The path for the lock file."
             }
         });
 
@@ -389,7 +399,7 @@ export class Cli {
             yargs.argv.config,
             yargs.argv.dir
         );
-        const lockFile = path.join(
+        const lockFile = yargs.argv.lockfile || path.join(
             path.dirname(configFile),
             path.basename(configFile, ".json") + ".lock"
         );
