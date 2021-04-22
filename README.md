@@ -102,6 +102,7 @@ file, the following options can be overridden:
 - `host`: `LARAVEL_ECHO_SERVER_HOST`
 - `port`: `LARAVEL_ECHO_SERVER_PORT`
 - `devMode`: `LARAVEL_ECHO_SERVER_DEBUG`
+- `databaseConfig.redis.db`: `LARAVEL_ECHO_SERVER_REDIS_DB`
 - `databaseConfig.redis.host`: `LARAVEL_ECHO_SERVER_REDIS_HOST`
 - `databaseConfig.redis.port`: `LARAVEL_ECHO_SERVER_REDIS_PORT`
 - `databaseConfig.redis.password`: `LARAVEL_ECHO_SERVER_REDIS_PASSWORD`
